@@ -1,0 +1,12 @@
+[package]
+edition = "2021"
+name = "filex"
+version = "0.1.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[dependencies]
+anyhow = "1" # 错误处理
+chrono = "0.4" 
+clap = {version = "3.0.7", features = ["derive"]} 
+regex = "1.5.4" 
+tokio = {version = "1", features = ["full"]}# 异步处理库
