@@ -32,7 +32,7 @@ struct Delete {
     prefix: Option<String>,
     /// How many files can be keep
     #[clap(short, long)]
-    num_keep: Option<usize>,
+    num_keep: usize,
     /// How long ago files can be keep. -d 5 means 5 days ago
     #[clap(short, long)]
     days_to_keep: Option<DaysSec>,
@@ -55,7 +55,7 @@ struct Show {
     prefix: Option<String>,
     /// How many files can be keep
     #[clap(short, long)]
-    num_keep: Option<usize>,
+    num_keep: usize,
     /// How long ago files can be keep. -d 5 means 5 days ago
     #[clap(short, long)]
     days_to_keep: Option<DaysSec>,
@@ -83,7 +83,7 @@ async fn main() -> Result<()> {
         SubCommand::Delete(ref args) => list_file(
             &args.path,
             &args.prefix,
-            &args.num_keep,
+            args.num_keep,
             &args.max_size,
             &args.days_to_keep,
             &args.free_disk,
@@ -92,7 +92,7 @@ async fn main() -> Result<()> {
         SubCommand::Show(ref args) => list_file(
             &args.path,
             &args.prefix,
-            &args.num_keep,
+            args.num_keep,
             &args.max_size,
             &args.days_to_keep,
             &args.free_disk,
@@ -105,7 +105,7 @@ async fn main() -> Result<()> {
 fn list_file(
     path: &Option<String>,
     prefix: &Option<String>,
-    num_keep: &Option<usize>,
+    num_keep: usize,
     total_size: &Option<FileSize>,
     days: &Option<DaysSec>,
     free_disk: &Option<DiskFreePercent>,
@@ -145,7 +145,7 @@ fn list_file(
     let disk_info = lib::get_disk_info().ok();
     let mut files: Vec<&FileInfo> = vec![];
     for (index, file_info) in paths.iter().enumerate() {
-        let log_too_many = num_keep.map(|it| index >= it).unwrap_or(false);
+        let log_too_many = index >= num_keep;
         let size_too_big = total_size
             .map(|it| it.size < file_info.acc_len)
             .unwrap_or(false);
