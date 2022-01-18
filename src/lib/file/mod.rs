@@ -13,7 +13,15 @@ pub fn parse_file(entry: DirEntry) -> Result<FileInfo> {
     if !metadata.is_file() {
         bail!(MyError::NotFile);
     }
-    let elapsed = metadata.created()?.elapsed()?.as_secs();
+
+    let elapsed = metadata
+        .created()
+        .or_else(|_e| metadata.modified())
+        .or_else(|_e| metadata.accessed())?
+        .elapsed()
+        .unwrap()
+        .as_secs();
+
     let info = FileInfo {
         entry: entry.path(),
         elapsed,
