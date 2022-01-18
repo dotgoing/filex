@@ -26,6 +26,8 @@ pub fn parse_file(entry: DirEntry) -> Result<FileInfo> {
         entry: entry.path(),
         elapsed,
         len: metadata.len(),
+        acc_len: 0,
+        reverse_acc_len: 0,
     };
     Ok(info)
 }

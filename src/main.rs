@@ -5,7 +5,7 @@ use std::fs;
 use std::fs::DirEntry;
 
 mod lib;
-use lib::{DaysSec, FileInfo, FileSize};
+use lib::*;
 
 /// A tool to delete the oldest files
 #[derive(Parser, Debug)]
@@ -39,6 +39,9 @@ struct Delete {
     /// How much total size files can be keep. k/K m/M g/G. -m 2g3M4k means 2G+3M+4K
     #[clap(short, long,parse(try_from_str=parse_max_size))]
     max_size: Option<FileSize>,
+    /// How much percent available disk space should be keep?
+    #[clap(short, long,parse(try_from_str=parse_disk_percent))]
+    free_disk: Option<DiskFreePercent>,
 }
 
 /// Show files which can be deleted according the given args
@@ -59,6 +62,17 @@ struct Show {
     /// How much total size files can be keep. k/K m/M g/G. -m 2g3M4k means 2G+3M+4K
     #[clap(short, long,parse(try_from_str=parse_max_size))]
     max_size: Option<FileSize>,
+    /// How much percent available disk space should be keep?
+    #[clap(short, long,parse(try_from_str=parse_disk_percent))]
+    free_disk: Option<DiskFreePercent>,
+}
+
+fn parse_max_size(s: &str) -> Result<FileSize> {
+    s.parse()
+}
+
+fn parse_disk_percent(s: &str) -> Result<DiskFreePercent> {
+    s.parse()
 }
 
 /// 程序的入口函数，因为在 http 请求时我们使用了异步处理，所以这里引入 tokio
@@ -72,6 +86,7 @@ async fn main() -> Result<()> {
             &args.num_keep,
             &args.max_size,
             &args.days_to_keep,
+            &args.free_disk,
             true,
         ),
         SubCommand::Show(ref args) => list_file(
@@ -80,14 +95,11 @@ async fn main() -> Result<()> {
             &args.num_keep,
             &args.max_size,
             &args.days_to_keep,
+            &args.free_disk,
             false,
         ),
     };
     Ok(())
-}
-
-fn parse_max_size(s: &str) -> Result<FileSize> {
-    s.parse()
 }
 
 fn list_file(
@@ -96,6 +108,7 @@ fn list_file(
     num_keep: &Option<usize>,
     total_size: &Option<FileSize>,
     days: &Option<DaysSec>,
+    free_disk: &Option<DiskFreePercent>,
     delete: bool,
 ) {
     let path = match path {
@@ -127,23 +140,31 @@ fn list_file(
         })
         .collect();
 
-    paths.sort_by(|a, b| a.elapsed.cmp(&b.elapsed));
+    count_file_size(&mut paths);
 
-    let mut acc_size = 0;
+    let disk_info = lib::get_disk_info().ok();
     let mut files: Vec<&FileInfo> = vec![];
     for (index, file_info) in paths.iter().enumerate() {
-        acc_size += file_info.len;
         let log_too_many = num_keep.map(|it| index >= it).unwrap_or(false);
-        let size_too_big = total_size.map(|it| it.size < acc_size).unwrap_or(false);
+        let size_too_big = total_size
+            .map(|it| it.size < file_info.acc_len)
+            .unwrap_or(false);
         let log_too_old = days
             .map(|it| it.day_sec > file_info.elapsed)
             .unwrap_or(false);
 
-        if log_too_many || size_too_big || log_too_old {
+        let free_disk_too_small = match (free_disk, &disk_info) {
+            (Some(DiskFreePercent { percent }), Some(DiskInfo { total, available })) => {
+                let need_to_keep = total * percent / 100;
+                let new_available = available + file_info.reverse_acc_len;
+                new_available > need_to_keep
+            }
+            _ => false,
+        };
+        if log_too_many || size_too_big || log_too_old || free_disk_too_small {
             files.push(&file_info);
         }
     }
-    files.reverse();
 
     for file in files {
         if delete {
@@ -158,4 +179,22 @@ fn list_file(
             println!("{:?}", file.entry);
         }
     }
+}
+
+fn count_file_size(paths: &mut Vec<FileInfo>) {
+    paths.sort_by(|a, b| a.elapsed.cmp(&b.elapsed));
+    let mut acc_size = 0;
+    for file_info in paths.iter_mut() {
+        acc_size += file_info.len;
+        file_info.acc_len = acc_size;
+    }
+
+    paths.reverse();
+    let mut reverse_acc_size = 0;
+    for file_info in paths.iter_mut() {
+        reverse_acc_size += file_info.len;
+        file_info.reverse_acc_len = reverse_acc_size;
+    }
+
+    paths.reverse();
 }

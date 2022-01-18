@@ -8,5 +8,6 @@ version = "0.1.0"
 anyhow = "1" # 错误处理
 chrono = "0.4" 
 clap = {version = "3.0.7", features = ["derive"]} 
+fs2 = "0.4.3" 
 regex = "1.5.4" 
 tokio = {version = "1", features = ["full"]}# 异步处理库
