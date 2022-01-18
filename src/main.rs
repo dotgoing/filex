@@ -120,7 +120,6 @@ fn list_file(
         None => "",
     };
     let paths = fs::read_dir(path).unwrap();
-    // : impl Iterator<Item = FileInfo>
     let paths: Vec<DirEntry> = paths
         .into_iter()
         .filter(|it| it.is_ok())
@@ -195,6 +194,4 @@ fn count_file_size(paths: &mut Vec<FileInfo>) {
         reverse_acc_size += file_info.len;
         file_info.reverse_acc_len = reverse_acc_size;
     }
-
-    paths.reverse();
 }
