@@ -106,7 +106,7 @@ fn list_file(
     path: &Option<String>,
     prefix: &Option<String>,
     num_keep: usize,
-    total_size: &Option<FileSize>,
+    max_size: &Option<FileSize>,
     days: &Option<DaysSec>,
     free_disk: &Option<DiskFreePercent>,
     delete: bool,
@@ -145,8 +145,8 @@ fn list_file(
     let mut files: Vec<&FileInfo> = vec![];
     for (index, file_info) in paths.iter().enumerate() {
         let log_too_many = index >= num_keep;
-        let size_too_big = total_size
-            .map(|it| it.size > file_info.acc_len)
+        let size_too_big = max_size
+            .map(|it| it.size < file_info.acc_len)
             .unwrap_or(false);
         let log_too_old = days
             .map(|it| it.day_sec > file_info.elapsed)
@@ -182,16 +182,16 @@ fn list_file(
 
 fn count_file_size(paths: &mut Vec<FileInfo>) {
     paths.sort_by(|a, b| a.elapsed.cmp(&b.elapsed));
-    let mut reverse_acc_size = 0;
-    for file_info in paths.iter_mut() {
-        reverse_acc_size += file_info.len;
-        file_info.reverse_acc_len = reverse_acc_size;
-    }
-    paths.reverse();
     let mut acc_size = 0;
     for file_info in paths.iter_mut() {
         acc_size += file_info.len;
         file_info.acc_len = acc_size;
+    }
+    paths.reverse();
+    let mut reverse_acc_size = 0;
+    for file_info in paths.iter_mut() {
+        reverse_acc_size += file_info.len;
+        file_info.reverse_acc_len = reverse_acc_size;
     }
     paths.reverse();
 }
