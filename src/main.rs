@@ -146,7 +146,7 @@ fn list_file(
     for (index, file_info) in paths.iter().enumerate() {
         let log_too_many = index >= num_keep;
         let size_too_big = total_size
-            .map(|it| it.size < file_info.acc_len)
+            .map(|it| it.size > file_info.acc_len)
             .unwrap_or(false);
         let log_too_old = days
             .map(|it| it.day_sec > file_info.elapsed)
