@@ -156,7 +156,7 @@ fn list_file(
             (Some(DiskFreePercent { percent }), Some(DiskInfo { total, available })) => {
                 let need_to_keep = total * percent / 100;
                 let new_available = available + file_info.reverse_acc_len;
-                new_available > need_to_keep
+                new_available < need_to_keep
             }
             _ => false,
         };
