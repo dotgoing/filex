@@ -164,7 +164,7 @@ fn list_file(
             files.push(&file_info);
         }
     }
-
+    files.reverse();
     for file in files {
         if delete {
             match std::fs::remove_file(&file.entry) {
@@ -182,16 +182,16 @@ fn list_file(
 
 fn count_file_size(paths: &mut Vec<FileInfo>) {
     paths.sort_by(|a, b| a.elapsed.cmp(&b.elapsed));
-    let mut acc_size = 0;
-    for file_info in paths.iter_mut() {
-        acc_size += file_info.len;
-        file_info.acc_len = acc_size;
-    }
-
-    paths.reverse();
     let mut reverse_acc_size = 0;
     for file_info in paths.iter_mut() {
         reverse_acc_size += file_info.len;
         file_info.reverse_acc_len = reverse_acc_size;
     }
+    paths.reverse();
+    let mut acc_size = 0;
+    for file_info in paths.iter_mut() {
+        acc_size += file_info.len;
+        file_info.acc_len = acc_size;
+    }
+    paths.reverse();
 }
