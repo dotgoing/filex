@@ -146,17 +146,17 @@ fn list_file(
     for (index, file_info) in paths.iter().enumerate() {
         let log_too_many = index >= num_keep;
         let size_too_big = max_size
-            .map(|it| it.size < file_info.acc_len)
+            .map(|it| file_info.acc_len > it.size)
             .unwrap_or(false);
         let log_too_old = days
-            .map(|it| it.day_sec > file_info.elapsed)
+            .map(|it| file_info.elapsed > it.day_sec)
             .unwrap_or(false);
 
         let free_disk_too_small = match (free_disk, &disk_info) {
             (Some(DiskFreePercent { percent }), Some(DiskInfo { total, available })) => {
                 let need_to_keep = total * percent / 100;
                 let new_available = available + file_info.reverse_acc_len;
-                new_available < need_to_keep
+                need_to_keep > new_available
             }
             _ => false,
         };
